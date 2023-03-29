@@ -5,6 +5,7 @@ import io
 import subprocess
 import uuid
 import socket
+import os
 class PAConnectException(Exception):
     pass
 class PADeviceRegisterException(Exception):
@@ -12,9 +13,11 @@ class PADeviceRegisterException(Exception):
 class PARecordReadException(Exception):
     pass
 
+prefix = os.environ.get('PREFIX', '')
+
 class MPVSource(AudioSource):
 
-    def __init__(self, source: Union[str, io.BufferedIOBase], opus_bitrate: int = 128, executable_path:str = '/usr/bin/mpv'):
+    def __init__(self, source: Union[str, io.BufferedIOBase], opus_bitrate: int = 128, executable_path:str = 'mpv'):
         self.source = source
         self.pa_sink_name = f'discord-{uuid.uuid4()}'
         self._pa_sink_volume: int = 65535
@@ -29,7 +32,7 @@ class MPVSource(AudioSource):
 
         self._pa_module_id:int = int(module_id.decode())
 
-        self._ipc_sock_path = '/tmp/dpy_mpv_' + str(uuid.uuid4()) + '.sock'
+        self._ipc_sock_path = prefix + '/tmp/dpy_mpv_' + str(uuid.uuid4()) + '.sock'
         self._mpv_args = [executable_path,
             '--msg-level=all=error',
             '--no-cache',
@@ -45,7 +48,7 @@ class MPVSource(AudioSource):
             '--audio-channels=stereo',
             source
         ]
-        self._parecord_args = ['/usr/bin/parecord',
+        self._parecord_args = ['parecord',
             '-r',
             '--raw',
             '--rate=48000',
