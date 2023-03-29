@@ -3,7 +3,7 @@ from discord.ext import commands
 import glob
 from config import TOKEN
 
-bot = commands.Bot(intents=discord.Intents.all(), command_prefix='y%')
+bot = commands.Bot(command_prefix='y%')
 
 @bot.event
 async def on_ready():
