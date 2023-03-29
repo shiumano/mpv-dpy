@@ -23,10 +23,10 @@ class MPVSource(AudioSource):
             ret, module_id, _null = self._run_shell(['pactl', 'load-module', 'module-null-sink', 'sink_name=' + self.pa_sink_name])
         except:
             raise PADeviceRegisterException('Failed to register virtual device')
-        
+
         if ret != 0:
             raise PADeviceRegisterException('Failed to register virtual device')
-        
+
         self._pa_module_id:int = int(module_id.decode())
 
         self._ipc_sock_path = '/tmp/dpy_mpv_' + str(uuid.uuid4()) + '.sock'
@@ -62,12 +62,12 @@ class MPVSource(AudioSource):
         self._opus_encoder = OpusEncoder()
         self._opus_encoder.set_bitrate(opus_bitrate)
         self._is_opus = True
-    
+
     def _run_shell(self, args: list):
         p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         return p.returncode, out, err
-    
+
     def _start_process(self):
         self._mpv_process = subprocess.Popen(self._mpv_args, stdout=subprocess.PIPE)
         self._parecord_process = subprocess.Popen(self._parecord_args, stdout=subprocess.PIPE)
@@ -83,20 +83,20 @@ class MPVSource(AudioSource):
         # print(f'MPVSource/read: reading frame {self._frame_read_count} (size={OpusEncoder.FRAME_SIZE})')
 
         frame = self._parecord_process.stdout.read(OpusEncoder.FRAME_SIZE)
-        
+
         if len(frame) != OpusEncoder.FRAME_SIZE:
             return b''
-        
+
         encoded_bytes = self._opus_encoder.encode(frame, OpusEncoder.SAMPLES_PER_FRAME)
 
         return encoded_bytes
-    
+
     def send_cmd(self, cmd: str):
         _ipc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         _ipc.connect(self._ipc_sock_path)
         _ipc.send((cmd + '\n').encode())
         _ipc.close()
-    
+
     def set_volume(self, volume: int):
         self._pa_sink_volume = volume
         if self._pa_sink_volume < 0:
@@ -104,16 +104,16 @@ class MPVSource(AudioSource):
         elif self._pa_sink_volume > 65535:
             self._pa_sink_volume = 65535
         self._run_shell(['pactl', 'set-sink-volume', self.pa_sink_name, str(volume)])
-    
+
     def get_volume(self):
         return self._pa_sink_volume
-    
+
     def cleanup(self):
         print('MPVSource/cleanup: cleaning up MPV, parecord, OpusEncoder and virtual device')
         del self._opus_encoder
         self._mpv_process.kill()
         self._parecord_process.kill()
         self._run_shell(['pactl', 'unload-module', str(self._pa_module_id)])
-    
+
     def is_opus(self):
         return self._is_opus
